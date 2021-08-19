@@ -37,8 +37,27 @@ app.get('/users/register', (req, res) => {
 
 app.post('/users/register', (req, res) => {
     const { name, email, password, confirmPassword } = req.body
-    User.create({ name, email, password })
-        .then(user => res.redirect('/'))
+    User.findOne({ where: { email } }).then(user => {
+        if (user) {
+            console.log('User already exists')
+            return res.render('register', {
+                name,
+                email,
+                password,
+                confirmPassword
+            })
+        }
+        return bcrypt
+            .genSalt(10)
+            .then(salt => bcrypt.hash(password, salt))
+            .then(hash => User.create({
+                name,
+                email,
+                password: hash
+            }))
+            .then(() => res.redirect('/'))
+            .catch(err => console.log(err))
+    })
 })
 
 app.get('/users/logout', (req, res) => {
@@ -48,9 +67,9 @@ app.get('/users/logout', (req, res) => {
 app.get('/todos/:id', (req, res) => {
     const id = req.params.id
     return Todo.findByPk(id)
-      .then(todo => res.render('detail', { todo: todo.toJSON() }))
-      .catch(error => console.log(error))
-  })
+        .then(todo => res.render('detail', { todo: todo.toJSON() }))
+        .catch(error => console.log(error))
+})
 
 app.listen(PORT, () => {
     console.log(`App is running on http://localhost:${PORT}`)
